@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+
+    <title>Gush</title>
+
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-alpha.3/css/bootstrap.min.css">
+
+    <style>
+      body {
+        padding-top: 2rem;
+        padding-bottom: 2rem;
+      }
+
+      form, .navbar {
+        margin-bottom: 1rem;
+      }
+
+      #output {
+        font-family: monospace;
+        word-wrap: break-word;
+        display: none;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="container">
+      <nav class="navbar navbar-light bg-faded">
+        <h1 class="navbar-brand m-b-0">Gush</h1>
+      </nav>
+
+      <form class="form-inline">
+        <div class="form-group">
+          <label class="sr-only" for="magnet">Magnet</label>
+          <input class="form-control" id="magent" name="magnet" placeholder="magnet:" required></input>
+        </div>
+
+        <button type="submit" class="btn btn-primary">Download</button>
+      </form>
+
+      <div id="output" class="card card-block"></div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/webtorrent/latest/webtorrent.min.js"></script>
+
+    <script>
+      // Source: https://webtorrent.io/intro
+
+      var form = document.querySelector('form');
+      var output = document.getElementById('output');
+
+      var client = new WebTorrent();
+
+      client.on('error', function(e) {
+        error(e.message);
+      });
+
+      form.addEventListener('submit', function(e) {
+        e.preventDefault();
+
+        var input = form.querySelector('input[name=magnet]');
+        var magnet = input.value;
+        input.value = '';
+
+        log('Add: ' + magnet);
+        output.style.display = 'block';
+
+        client.add(magnet, onTorrent);
+      });
+
+      function onTorrent(torrent) {
+        var interval = setInterval(function() {
+          log('Progress: ' + (torrent.progress * 100).toFixed(1) + '%');
+        }, 5000);
+
+        torrent.on('done', function() {
+          log('Progress: 100%');
+          clearInterval(interval);
+        });
+
+        torrent.files.forEach(function(file) {
+          file.getBlobURL(function(e, url) {
+            if (e) {
+              return error(e.message);
+            }
+
+            var a = document.createElement('a');
+            a._target = '_blank';
+            a.download = file.name;
+            a.href = url;
+            a.textContent = 'Download: ' + file.name;
+            log(a.outerHTML);
+          });
+        });
+      }
+
+      function log(message) {
+        var e = document.createElement('div');
+        e.innerHTML = message;
+        output.appendChild(e);
+        return e;
+      }
+
+      function error(message) {
+        var e = log(message);
+        e.style.color = 'red';
+        e.style.fontWeight = 'bold';
+      }
+    </script>
+  </body>
+</html>
